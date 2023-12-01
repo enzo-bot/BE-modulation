@@ -21,23 +21,20 @@ if __name__ == '__main__':
         except:
             print("Warning: failed to XInitThreads()")
 
-from PyQt5 import Qt
-from gnuradio import qtgui
-from gnuradio.filter import firdes
-import sip
-from gnuradio import analog
 from gnuradio import audio
-from gnuradio import blocks
+from gnuradio import digital
 from gnuradio import filter
+from gnuradio.filter import firdes
 from gnuradio import gr
 import sys
 import signal
+from PyQt5 import Qt
 from argparse import ArgumentParser
 from gnuradio.eng_arg import eng_float, intx
 from gnuradio import eng_notation
 from gnuradio import uhd
 import time
-from gnuradio.qtgui import Range, RangeWidget
+from gnuradio import vocoder
 from gnuradio import qtgui
 
 class Emission_AM(gr.top_block, Qt.QWidget):
@@ -76,17 +73,15 @@ class Emission_AM(gr.top_block, Qt.QWidget):
         ##################################################
         # Variables
         ##################################################
-        self.samp_rate = samp_rate = 2000000
-        self.indice_mod = indice_mod = 1
-        self.center_freq = center_freq = 433000000
-        self.amplitude = amplitude = 1
+        self.samp_rate = samp_rate = 44.1e3*8
+        self.sampPerSymbol = sampPerSymbol = 2
+        self.pskType = pskType = 3
+        self.center_freq = center_freq = 433.5e6
 
         ##################################################
         # Blocks
         ##################################################
-        self._amplitude_range = Range(0, 5, 0.1, 1, 200)
-        self._amplitude_win = RangeWidget(self._amplitude_range, self.set_amplitude, 'amplitude', "counter_slider", float)
-        self.top_grid_layout.addWidget(self._amplitude_win)
+        self.vocoder_cvsd_decode_bf_0 = vocoder.cvsd_decode_bf(8,0.5)
         self.uhd_usrp_source_0 = uhd.usrp_source(
             ",".join(("", "")),
             uhd.stream_args(
@@ -98,75 +93,34 @@ class Emission_AM(gr.top_block, Qt.QWidget):
         self.uhd_usrp_source_0.set_center_freq(center_freq, 0)
         self.uhd_usrp_source_0.set_gain(50, 0)
         self.uhd_usrp_source_0.set_antenna('TX/RX', 0)
-        self.uhd_usrp_source_0.set_bandwidth(20000, 0)
         self.uhd_usrp_source_0.set_samp_rate(samp_rate)
         self.uhd_usrp_source_0.set_time_unknown_pps(uhd.time_spec())
-        self.rational_resampler_xxx_0 = filter.rational_resampler_ccf(
-                interpolation=441,
-                decimation=1000,
+        self.rational_resampler_xxx_0 = filter.rational_resampler_fff(
+                interpolation=1,
+                decimation=8,
                 taps=None,
                 fractional_bw=None)
-        self.qtgui_freq_sink_x_0 = qtgui.freq_sink_c(
-            1024, #size
-            firdes.WIN_BLACKMAN_hARRIS, #wintype
-            0, #fc
-            samp_rate, #bw
-            "", #name
-            1
-        )
-        self.qtgui_freq_sink_x_0.set_update_time(0.10)
-        self.qtgui_freq_sink_x_0.set_y_axis(-140, 10)
-        self.qtgui_freq_sink_x_0.set_y_label('Relative Gain', 'dB')
-        self.qtgui_freq_sink_x_0.set_trigger_mode(qtgui.TRIG_MODE_FREE, 0.0, 0, "")
-        self.qtgui_freq_sink_x_0.enable_autoscale(False)
-        self.qtgui_freq_sink_x_0.enable_grid(False)
-        self.qtgui_freq_sink_x_0.set_fft_average(1.0)
-        self.qtgui_freq_sink_x_0.enable_axis_labels(True)
-        self.qtgui_freq_sink_x_0.enable_control_panel(False)
-
-
-
-        labels = ['', '', '', '', '',
-            '', '', '', '', '']
-        widths = [1, 1, 1, 1, 1,
-            1, 1, 1, 1, 1]
-        colors = ["blue", "red", "green", "black", "cyan",
-            "magenta", "yellow", "dark red", "dark green", "dark blue"]
-        alphas = [1.0, 1.0, 1.0, 1.0, 1.0,
-            1.0, 1.0, 1.0, 1.0, 1.0]
-
-        for i in range(1):
-            if len(labels[i]) == 0:
-                self.qtgui_freq_sink_x_0.set_line_label(i, "Data {0}".format(i))
-            else:
-                self.qtgui_freq_sink_x_0.set_line_label(i, labels[i])
-            self.qtgui_freq_sink_x_0.set_line_width(i, widths[i])
-            self.qtgui_freq_sink_x_0.set_line_color(i, colors[i])
-            self.qtgui_freq_sink_x_0.set_line_alpha(i, alphas[i])
-
-        self._qtgui_freq_sink_x_0_win = sip.wrapinstance(self.qtgui_freq_sink_x_0.pyqwidget(), Qt.QWidget)
-        self.top_grid_layout.addWidget(self._qtgui_freq_sink_x_0_win)
-        self._indice_mod_range = Range(0, 2, 0.05, 1, 200)
-        self._indice_mod_win = RangeWidget(self._indice_mod_range, self.set_indice_mod, 'indice_mod', "counter_slider", float)
-        self.top_grid_layout.addWidget(self._indice_mod_win)
-        self.blocks_multiply_xx_0_0 = blocks.multiply_vcc(1)
-        self.blocks_multiply_const_vxx_0 = blocks.multiply_const_cc(amplitude)
-        self.blocks_complex_to_float_0 = blocks.complex_to_float(1)
-        self.audio_sink_0 = audio.sink(44100, '', True)
-        self.analog_sig_source_x_0_0_0 = analog.sig_source_c(samp_rate, analog.GR_COS_WAVE, -center_freq, amplitude, 0, 0)
+        self.digital_psk_demod_0 = digital.psk.psk_demod(
+            constellation_points=2**pskType,
+            differential=True,
+            samples_per_symbol=sampPerSymbol,
+            excess_bw=0.35,
+            phase_bw=6.28/100.0,
+            timing_bw=6.28/100.0,
+            mod_code="gray",
+            verbose=False,
+            log=False)
+        self.audio_sink_0_0 = audio.sink(44100, '', True)
 
 
 
         ##################################################
         # Connections
         ##################################################
-        self.connect((self.analog_sig_source_x_0_0_0, 0), (self.blocks_multiply_xx_0_0, 0))
-        self.connect((self.blocks_complex_to_float_0, 0), (self.audio_sink_0, 0))
-        self.connect((self.blocks_multiply_const_vxx_0, 0), (self.blocks_complex_to_float_0, 0))
-        self.connect((self.blocks_multiply_xx_0_0, 0), (self.qtgui_freq_sink_x_0, 0))
-        self.connect((self.blocks_multiply_xx_0_0, 0), (self.rational_resampler_xxx_0, 0))
-        self.connect((self.rational_resampler_xxx_0, 0), (self.blocks_multiply_const_vxx_0, 0))
-        self.connect((self.uhd_usrp_source_0, 0), (self.blocks_multiply_xx_0_0, 1))
+        self.connect((self.digital_psk_demod_0, 0), (self.vocoder_cvsd_decode_bf_0, 0))
+        self.connect((self.rational_resampler_xxx_0, 0), (self.audio_sink_0_0, 0))
+        self.connect((self.uhd_usrp_source_0, 0), (self.digital_psk_demod_0, 0))
+        self.connect((self.vocoder_cvsd_decode_bf_0, 0), (self.rational_resampler_xxx_0, 0))
 
     def closeEvent(self, event):
         self.settings = Qt.QSettings("GNU Radio", "Emission_AM")
@@ -178,31 +132,26 @@ class Emission_AM(gr.top_block, Qt.QWidget):
 
     def set_samp_rate(self, samp_rate):
         self.samp_rate = samp_rate
-        self.analog_sig_source_x_0_0_0.set_sampling_freq(self.samp_rate)
-        self.qtgui_freq_sink_x_0.set_frequency_range(0, self.samp_rate)
         self.uhd_usrp_source_0.set_samp_rate(self.samp_rate)
 
-    def get_indice_mod(self):
-        return self.indice_mod
+    def get_sampPerSymbol(self):
+        return self.sampPerSymbol
 
-    def set_indice_mod(self, indice_mod):
-        self.indice_mod = indice_mod
+    def set_sampPerSymbol(self, sampPerSymbol):
+        self.sampPerSymbol = sampPerSymbol
+
+    def get_pskType(self):
+        return self.pskType
+
+    def set_pskType(self, pskType):
+        self.pskType = pskType
 
     def get_center_freq(self):
         return self.center_freq
 
     def set_center_freq(self, center_freq):
         self.center_freq = center_freq
-        self.analog_sig_source_x_0_0_0.set_frequency(-self.center_freq)
         self.uhd_usrp_source_0.set_center_freq(self.center_freq, 0)
-
-    def get_amplitude(self):
-        return self.amplitude
-
-    def set_amplitude(self, amplitude):
-        self.amplitude = amplitude
-        self.analog_sig_source_x_0_0_0.set_amplitude(self.amplitude)
-        self.blocks_multiply_const_vxx_0.set_k(self.amplitude)
 
 
 
