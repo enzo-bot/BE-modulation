@@ -33,6 +33,23 @@ options:
     state: enabled
 
 blocks:
+- name: CMA_algo
+  id: variable_adaptive_algorithm
+  parameters:
+    comment: ''
+    cons: qpsk
+    delta: '10.0'
+    ffactor: '0.99'
+    modulus: '4'
+    step_size: '.0001'
+    type: cma
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1080, 392.0]
+    rotation: 0
+    state: true
 - name: center_freq
   id: variable
   parameters:
@@ -55,6 +72,26 @@ blocks:
     bus_source: false
     bus_structure: null
     coordinate: [536, 24]
+    rotation: 0
+    state: true
+- name: qpsk
+  id: variable_constellation
+  parameters:
+    comment: ''
+    const_points: '[-1-1j, -1+1j, 1+1j, 1-1j]'
+    dims: '1'
+    normalization: digital.constellation.AMPLITUDE_NORMALIZATION
+    npwr: '1.0'
+    precision: '8'
+    rot_sym: '4'
+    soft_dec_lut: None
+    sym_map: '[0, 1, 3, 2]'
+    type: qpsk
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1192, 540.0]
     rotation: 0
     state: true
 - name: sampPerSymbol
@@ -161,24 +198,24 @@ blocks:
 - name: digital_linear_equalizer_0
   id: digital_linear_equalizer
   parameters:
-    adapt_after_training: 'True'
+    adapt_after_training: 'False'
     affinity: ''
-    alg: ''
+    alg: CMA_algo
     alias: ''
     comment: ''
     maxoutbuf: '0'
     minoutbuf: '0'
-    num_taps: ''
-    sps: ''
+    num_taps: '5'
+    sps: '2'
     training_sequence: '[ ]'
     training_start_tag: corr_est
   states:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [648, 160.0]
+    coordinate: [608, 144.0]
     rotation: 0
-    state: disabled
+    state: enabled
 - name: digital_psk_demod_0
   id: digital_psk_demod
   parameters:
@@ -201,7 +238,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [920, 148.0]
+    coordinate: [856, 100.0]
     rotation: 0
     state: enabled
 - name: digital_symbol_sync_xx_0
@@ -217,7 +254,7 @@ blocks:
     maxoutbuf: '0'
     minoutbuf: '0'
     nfilters: '128'
-    osps: '1'
+    osps: '4'
     pfb_mf_taps: '[]'
     resamp_type: digital.IR_MMSE_8TAP
     sps: '2'
@@ -228,9 +265,9 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [312, 180.0]
+    coordinate: [296, 148.0]
     rotation: 0
-    state: disabled
+    state: enabled
 - name: iio_pluto_source_0
   id: iio_pluto_source
   parameters:
@@ -449,7 +486,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1216, 156.0]
+    coordinate: [1152, 148.0]
     rotation: 0
     state: enabled
 
@@ -457,8 +494,6 @@ connections:
 - [digital_linear_equalizer_0, '0', digital_psk_demod_0, '0']
 - [digital_psk_demod_0, '0', vocoder_cvsd_decode_bf_0, '0']
 - [digital_symbol_sync_xx_0, '0', digital_linear_equalizer_0, '0']
-- [digital_symbol_sync_xx_0, '0', digital_psk_demod_0, '0']
-- [iio_pluto_source_0, '0', digital_psk_demod_0, '0']
 - [iio_pluto_source_0, '0', digital_symbol_sync_xx_0, '0']
 - [rational_resampler_xxx_0, '0', audio_sink_0_0, '0']
 - [vocoder_cvsd_decode_bf_0, '0', rational_resampler_xxx_0, '0']

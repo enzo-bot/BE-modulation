@@ -1,6 +1,7 @@
 options:
   parameters:
     author: slamnia
+    catch_exceptions: 'True'
     category: '[GRC Hier Blocks]'
     cmake_opt: ''
     comment: ''
@@ -38,6 +39,8 @@ blocks:
     comment: ''
     const_points: '[-1-1j, 1+1j]'
     dims: '1'
+    normalization: digital.constellation.AMPLITUDE_NORMALIZATION
+    npwr: '1.0'
     precision: '8'
     rot_sym: '2'
     soft_dec_lut: None
@@ -57,7 +60,7 @@ blocks:
     gui_hint: ''
     label: ''
     min_len: '200'
-    orient: Qt.Horizontal
+    orient: QtCore.Qt.Horizontal
     rangeType: float
     start: '0'
     step: '0.5'
@@ -78,7 +81,7 @@ blocks:
     gui_hint: ''
     label: ''
     min_len: '200'
-    orient: Qt.Horizontal
+    orient: QtCore.Qt.Horizontal
     rangeType: float
     start: '0'
     step: '0.05'
@@ -99,7 +102,7 @@ blocks:
     gui_hint: ''
     label: ''
     min_len: '200'
-    orient: Qt.Horizontal
+    orient: QtCore.Qt.Horizontal
     rangeType: float
     start: '0'
     step: '50'
@@ -120,7 +123,7 @@ blocks:
     gui_hint: ''
     label: ''
     min_len: '200'
-    orient: Qt.Horizontal
+    orient: QtCore.Qt.Horizontal
     rangeType: int
     start: '1'
     step: '1'
@@ -215,7 +218,7 @@ blocks:
     affinity: ''
     alias: ''
     comment: ''
-    file: "/home/slamnia/T\xE9l\xE9chargements/Best of des pires blagues de jamy.wav"
+    file: /home/bina/Documents/lmms/projects/wheelies_on.4.wav
     maxoutbuf: '0'
     minoutbuf: '0'
     nchan: '1'
@@ -261,6 +264,7 @@ blocks:
     maxoutbuf: '0'
     minoutbuf: '0'
     samples_per_symbol: sampPerSymbol
+    truncate: 'False'
     verbose: 'False'
   states:
     bus_sink: false
@@ -573,3 +577,4 @@ connections:
 
 metadata:
   file_format: 1
+  grc_version: 3.10.8.0
