@@ -12,10 +12,10 @@
 from PyQt5 import Qt
 from gnuradio import qtgui
 from gnuradio import audio
+from gnuradio import blocks
 from gnuradio import digital
-from gnuradio import filter
-from gnuradio.filter import firdes
 from gnuradio import gr
+from gnuradio.filter import firdes
 from gnuradio.fft import window
 import sys
 import signal
@@ -23,7 +23,6 @@ from PyQt5 import Qt
 from argparse import ArgumentParser
 from gnuradio.eng_arg import eng_float, intx
 from gnuradio import eng_notation
-from gnuradio import iio
 from gnuradio import vocoder
 from gnuradio.qtgui import Range, RangeWidget
 from PyQt5 import QtCore
@@ -65,73 +64,49 @@ class Emission_AM(gr.top_block, Qt.QWidget):
         ##################################################
         # Variables
         ##################################################
-        self.qpsk = qpsk = digital.constellation_qpsk().base()
-        self.qpsk.set_npwr(1.0)
-        self.timeErrorDetectionGain = timeErrorDetectionGain = 1
         self.samp_rate = samp_rate = 44100*8
+        self.ook = ook = digital.constellation_calcdist([0, 1], [0, 1],
+        1, 1, digital.constellation.AMPLITUDE_NORMALIZATION).base()
+        self.ook.set_npwr(1.0)
+        self.timeErrorDetectionGain = timeErrorDetectionGain = 1
+        self.taps = taps = firdes.band_pass(1.0, samp_rate, 150, 23000, 50, window.WIN_HAMMING, 6.76)
         self.sampPerSymbol = sampPerSymbol = 2
         self.pskType = pskType = 2
+        self.loop_bandwidth = loop_bandwidth = 0.06
         self.center_freq = center_freq = 500000000
-        self.CMA_algo = CMA_algo = digital.adaptive_algorithm_cma( qpsk, .0001, 4).base()
+        self.CMA_algo = CMA_algo = digital.adaptive_algorithm_cma( ook, .0001, 4).base()
 
         ##################################################
         # Blocks
         ##################################################
 
+        self.vocoder_cvsd_encode_fb_0 = vocoder.cvsd_encode_fb(8,0.5)
+        self.vocoder_cvsd_decode_bf_0 = vocoder.cvsd_decode_bf(8,0.5)
         self._timeErrorDetectionGain_range = Range(0, 10, 0.1, 1, 200)
         self._timeErrorDetectionGain_win = RangeWidget(self._timeErrorDetectionGain_range, self.set_timeErrorDetectionGain, "'timeErrorDetectionGain'", "counter_slider", float, QtCore.Qt.Horizontal)
         self.top_layout.addWidget(self._timeErrorDetectionGain_win)
-        self.vocoder_cvsd_decode_bf_0 = vocoder.cvsd_decode_bf(8,0.5)
-        self.rational_resampler_xxx_0 = filter.rational_resampler_fff(
-                interpolation=1,
-                decimation=8,
-                taps=[],
-                fractional_bw=0)
-        self.iio_pluto_source_0 = iio.fmcomms2_source_fc32('' if '' else iio.get_pluto_uri(), [True, True], 32768)
-        self.iio_pluto_source_0.set_len_tag_key('packet_len')
-        self.iio_pluto_source_0.set_frequency(center_freq)
-        self.iio_pluto_source_0.set_samplerate(samp_rate)
-        self.iio_pluto_source_0.set_gain_mode(0, 'manual')
-        self.iio_pluto_source_0.set_gain(0, 64)
-        self.iio_pluto_source_0.set_quadrature(True)
-        self.iio_pluto_source_0.set_rfdc(True)
-        self.iio_pluto_source_0.set_bbdc(True)
-        self.iio_pluto_source_0.set_filter_params('Auto', '', 0, 0)
-        self.digital_symbol_sync_xx_0 = digital.symbol_sync_cc(
-            digital.TED_MUELLER_AND_MULLER,
-            2,
-            0.045,
-            1.0,
-            timeErrorDetectionGain,
-            1.5,
-            4,
-            digital.constellation_bpsk().base(),
-            digital.IR_MMSE_8TAP,
-            128,
-            [])
-        self.digital_psk_demod_0 = digital.psk.psk_demod(
-            constellation_points=(2**pskType),
-            differential=True,
-            samples_per_symbol=sampPerSymbol,
+        self.digital_constellation_modulator_0 = digital.generic_mod(
+            constellation=ook,
+            differential=False,
+            samples_per_symbol=2,
+            pre_diff_code=True,
             excess_bw=0.35,
-            phase_bw=(6.28/100.0),
-            timing_bw=(6.28/100.0),
-            mod_code="gray",
             verbose=False,
-            log=False)
-        self.digital_linear_equalizer_0 = digital.linear_equalizer(5, 2, CMA_algo, False, [ ], 'corr_est')
+            log=False,
+            truncate=False)
+        self.digital_constellation_decoder_cb_0 = digital.constellation_decoder_cb(ook)
+        self.blocks_wavfile_source_0 = blocks.wavfile_source('/home/bina/Documents/lmms/projects/wheelies_on.4.wav', True)
         self.audio_sink_0_0 = audio.sink(44100, '', True)
 
 
         ##################################################
         # Connections
         ##################################################
-        self.connect((self.digital_linear_equalizer_0, 0), (self.digital_psk_demod_0, 0))
-        self.connect((self.digital_psk_demod_0, 0), (self.vocoder_cvsd_decode_bf_0, 0))
-        self.connect((self.digital_symbol_sync_xx_0, 0), (self.digital_linear_equalizer_0, 0))
-        self.connect((self.iio_pluto_source_0, 0), (self.digital_symbol_sync_xx_0, 0))
-        self.connect((self.rational_resampler_xxx_0, 0), (self.audio_sink_0_0, 0))
-        self.connect((self.vocoder_cvsd_decode_bf_0, 0), (self.rational_resampler_xxx_0, 0))
+        self.connect((self.blocks_wavfile_source_0, 0), (self.vocoder_cvsd_encode_fb_0, 0))
+        self.connect((self.digital_constellation_decoder_cb_0, 0), (self.vocoder_cvsd_decode_bf_0, 0))
+        self.connect((self.digital_constellation_modulator_0, 0), (self.digital_constellation_decoder_cb_0, 0))
+        self.connect((self.vocoder_cvsd_decode_bf_0, 0), (self.audio_sink_0_0, 0))
+        self.connect((self.vocoder_cvsd_encode_fb_0, 0), (self.digital_constellation_modulator_0, 0))
 
 
     def closeEvent(self, event):
@@ -142,25 +117,31 @@ class Emission_AM(gr.top_block, Qt.QWidget):
 
         event.accept()
 
-    def get_qpsk(self):
-        return self.qpsk
+    def get_samp_rate(self):
+        return self.samp_rate
 
-    def set_qpsk(self, qpsk):
-        self.qpsk = qpsk
+    def set_samp_rate(self, samp_rate):
+        self.samp_rate = samp_rate
+        self.set_taps(firdes.band_pass(1.0, self.samp_rate, 150, 23000, 50, window.WIN_HAMMING, 6.76))
+
+    def get_ook(self):
+        return self.ook
+
+    def set_ook(self, ook):
+        self.ook = ook
+        self.digital_constellation_decoder_cb_0.set_constellation(self.ook)
 
     def get_timeErrorDetectionGain(self):
         return self.timeErrorDetectionGain
 
     def set_timeErrorDetectionGain(self, timeErrorDetectionGain):
         self.timeErrorDetectionGain = timeErrorDetectionGain
-        self.digital_symbol_sync_xx_0.set_ted_gain(self.timeErrorDetectionGain)
 
-    def get_samp_rate(self):
-        return self.samp_rate
+    def get_taps(self):
+        return self.taps
 
-    def set_samp_rate(self, samp_rate):
-        self.samp_rate = samp_rate
-        self.iio_pluto_source_0.set_samplerate(self.samp_rate)
+    def set_taps(self, taps):
+        self.taps = taps
 
     def get_sampPerSymbol(self):
         return self.sampPerSymbol
@@ -174,12 +155,17 @@ class Emission_AM(gr.top_block, Qt.QWidget):
     def set_pskType(self, pskType):
         self.pskType = pskType
 
+    def get_loop_bandwidth(self):
+        return self.loop_bandwidth
+
+    def set_loop_bandwidth(self, loop_bandwidth):
+        self.loop_bandwidth = loop_bandwidth
+
     def get_center_freq(self):
         return self.center_freq
 
     def set_center_freq(self, center_freq):
         self.center_freq = center_freq
-        self.iio_pluto_source_0.set_frequency(self.center_freq)
 
     def get_CMA_algo(self):
         return self.CMA_algo
