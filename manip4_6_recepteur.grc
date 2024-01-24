@@ -49,7 +49,7 @@ blocks:
     bus_structure: null
     coordinate: [1232, 52.0]
     rotation: 0
-    state: true
+    state: disabled
 - name: center_freq
   id: variable
   parameters:
@@ -78,14 +78,14 @@ blocks:
   id: variable_constellation
   parameters:
     comment: ''
-    const_points: '[0, 1]'
+    const_points: '[1+1j, 1-1j, -1+1j, -1-1j]'
     dims: '1'
     normalization: digital.constellation.AMPLITUDE_NORMALIZATION
     npwr: '1.0'
     precision: '8'
-    rot_sym: '1'
+    rot_sym: '4'
     soft_dec_lut: None
-    sym_map: '[0, 1]'
+    sym_map: '[0, 1, 2, 3]'
     type: calcdist
   states:
     bus_sink: false
@@ -122,7 +122,7 @@ blocks:
   id: variable
   parameters:
     comment: ''
-    value: 44100*8
+    value: '44100'
   states:
     bus_sink: false
     bus_source: false
@@ -149,7 +149,7 @@ blocks:
     bus_structure: null
     coordinate: [1040, 36.0]
     rotation: 0
-    state: true
+    state: disabled
 - name: timeErrorDetectionGain
   id: variable_qtgui_range
   parameters:
@@ -171,6 +171,29 @@ blocks:
     coordinate: [624, 12.0]
     rotation: 0
     state: true
+- name: analog_sig_source_x_0
+  id: analog_sig_source_x
+  parameters:
+    affinity: ''
+    alias: ''
+    amp: '1'
+    comment: ''
+    freq: '962'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    offset: '0'
+    phase: '0'
+    samp_rate: samp_rate
+    showports: 'False'
+    type: float
+    waveform: analog.GR_COS_WAVE
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [64, 300.0]
+    rotation: 0
+    state: disabled
 - name: audio_sink_0_0
   id: audio_sink
   parameters:
@@ -185,7 +208,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [304, 596.0]
+    coordinate: [128, 604.0]
     rotation: 180
     state: enabled
 - name: blocks_float_to_complex_0
@@ -202,6 +225,24 @@ blocks:
     bus_source: false
     bus_structure: null
     coordinate: [1120, 528.0]
+    rotation: 0
+    state: disabled
+- name: blocks_vco_f_0
+  id: blocks_vco_f
+  parameters:
+    affinity: ''
+    alias: ''
+    amplitude: ''
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    samp_rate: ''
+    sensitivity: ''
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1048, 480.0]
     rotation: 0
     state: disabled
 - name: blocks_wavfile_source_0
@@ -250,8 +291,8 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [784, 412.0]
-    rotation: 0
+    coordinate: [788.0, 424]
+    rotation: 270
     state: enabled
 - name: digital_constellation_modulator_0
   id: digital_constellation_modulator
@@ -265,14 +306,14 @@ blocks:
     log: 'False'
     maxoutbuf: '0'
     minoutbuf: '0'
-    samples_per_symbol: '2'
+    samples_per_symbol: sampPerSymbol
     truncate: 'False'
     verbose: 'False'
   states:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [544, 444.0]
+    coordinate: [608, 316.0]
     rotation: 0
     state: true
 - name: qtgui_const_sink_x_0
@@ -367,6 +408,35 @@ blocks:
     coordinate: [1240, 364.0]
     rotation: 0
     state: disabled
+- name: qtgui_sink_x_0
+  id: qtgui_sink_x
+  parameters:
+    affinity: ''
+    alias: ''
+    bw: samp_rate
+    comment: ''
+    fc: '0'
+    fftsize: '1024'
+    gui_hint: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    name: '""'
+    plotconst: 'True'
+    plotfreq: 'True'
+    plottime: 'True'
+    plotwaterfall: 'True'
+    rate: '10'
+    showports: 'False'
+    showrf: 'True'
+    type: complex
+    wintype: window.WIN_KAISER
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [872, 316.0]
+    rotation: 0
+    state: disabled
 - name: qtgui_time_sink_x_0
   id: qtgui_time_sink_x
   parameters:
@@ -395,9 +465,9 @@ blocks:
     color8: dark red
     color9: dark green
     comment: ''
-    ctrlpanel: 'False'
+    ctrlpanel: 'True'
     entags: 'True'
-    grid: 'False'
+    grid: 'True'
     gui_hint: ''
     label1: Signal 1
     label10: Signal 10
@@ -470,7 +540,7 @@ blocks:
     affinity: ''
     alias: ''
     comment: ''
-    decim: '4'
+    decim: '8'
     fbw: '0'
     interp: '1'
     maxoutbuf: '0'
@@ -481,9 +551,9 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [488, 604.0]
+    coordinate: [384, 572.0]
     rotation: 180
-    state: disabled
+    state: enabled
 - name: vocoder_cvsd_decode_bf_0
   id: vocoder_cvsd_decode_bf
   parameters:
@@ -498,7 +568,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [600, 548.0]
+    coordinate: [608, 588.0]
     rotation: 180
     state: enabled
 - name: vocoder_cvsd_encode_fb_0
@@ -515,18 +585,20 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [264, 452.0]
+    coordinate: [344, 348.0]
     rotation: 0
     state: enabled
 
 connections:
+- [analog_sig_source_x_0, '0', vocoder_cvsd_encode_fb_0, '0']
 - [blocks_float_to_complex_0, '0', qtgui_const_sink_x_0, '0']
 - [blocks_wavfile_source_0, '0', vocoder_cvsd_encode_fb_0, '0']
 - [digital_binary_slicer_fb_0, '0', vocoder_cvsd_decode_bf_0, '0']
 - [digital_constellation_decoder_cb_0, '0', vocoder_cvsd_decode_bf_0, '0']
 - [digital_constellation_modulator_0, '0', digital_constellation_decoder_cb_0, '0']
+- [digital_constellation_modulator_0, '0', qtgui_sink_x_0, '0']
+- [digital_constellation_modulator_0, '0', qtgui_time_sink_x_0, '0']
 - [rational_resampler_xxx_0, '0', audio_sink_0_0, '0']
-- [vocoder_cvsd_decode_bf_0, '0', audio_sink_0_0, '0']
 - [vocoder_cvsd_decode_bf_0, '0', rational_resampler_xxx_0, '0']
 - [vocoder_cvsd_encode_fb_0, '0', digital_constellation_modulator_0, '0']
 

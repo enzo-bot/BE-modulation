@@ -14,8 +14,9 @@ from gnuradio import qtgui
 from gnuradio import audio
 from gnuradio import blocks
 from gnuradio import digital
-from gnuradio import gr
+from gnuradio import filter
 from gnuradio.filter import firdes
+from gnuradio import gr
 from gnuradio.fft import window
 import sys
 import signal
@@ -64,17 +65,15 @@ class Emission_AM(gr.top_block, Qt.QWidget):
         ##################################################
         # Variables
         ##################################################
-        self.samp_rate = samp_rate = 44100*8
-        self.ook = ook = digital.constellation_calcdist([0, 1], [0, 1],
-        1, 1, digital.constellation.AMPLITUDE_NORMALIZATION).base()
-        self.ook.set_npwr(1.0)
         self.timeErrorDetectionGain = timeErrorDetectionGain = 1
-        self.taps = taps = firdes.band_pass(1.0, samp_rate, 150, 23000, 50, window.WIN_HAMMING, 6.76)
+        self.samp_rate = samp_rate = 44100
         self.sampPerSymbol = sampPerSymbol = 2
         self.pskType = pskType = 2
+        self.ook = ook = digital.constellation_calcdist([1+1j, 1-1j, -1+1j, -1-1j], [0, 1, 2, 3],
+        4, 1, digital.constellation.AMPLITUDE_NORMALIZATION).base()
+        self.ook.set_npwr(1.0)
         self.loop_bandwidth = loop_bandwidth = 0.06
         self.center_freq = center_freq = 500000000
-        self.CMA_algo = CMA_algo = digital.adaptive_algorithm_cma( ook, .0001, 4).base()
 
         ##################################################
         # Blocks
@@ -85,10 +84,15 @@ class Emission_AM(gr.top_block, Qt.QWidget):
         self._timeErrorDetectionGain_range = Range(0, 10, 0.1, 1, 200)
         self._timeErrorDetectionGain_win = RangeWidget(self._timeErrorDetectionGain_range, self.set_timeErrorDetectionGain, "'timeErrorDetectionGain'", "counter_slider", float, QtCore.Qt.Horizontal)
         self.top_layout.addWidget(self._timeErrorDetectionGain_win)
+        self.rational_resampler_xxx_0 = filter.rational_resampler_fff(
+                interpolation=1,
+                decimation=8,
+                taps=[],
+                fractional_bw=0)
         self.digital_constellation_modulator_0 = digital.generic_mod(
             constellation=ook,
             differential=False,
-            samples_per_symbol=2,
+            samples_per_symbol=sampPerSymbol,
             pre_diff_code=True,
             excess_bw=0.35,
             verbose=False,
@@ -105,7 +109,8 @@ class Emission_AM(gr.top_block, Qt.QWidget):
         self.connect((self.blocks_wavfile_source_0, 0), (self.vocoder_cvsd_encode_fb_0, 0))
         self.connect((self.digital_constellation_decoder_cb_0, 0), (self.vocoder_cvsd_decode_bf_0, 0))
         self.connect((self.digital_constellation_modulator_0, 0), (self.digital_constellation_decoder_cb_0, 0))
-        self.connect((self.vocoder_cvsd_decode_bf_0, 0), (self.audio_sink_0_0, 0))
+        self.connect((self.rational_resampler_xxx_0, 0), (self.audio_sink_0_0, 0))
+        self.connect((self.vocoder_cvsd_decode_bf_0, 0), (self.rational_resampler_xxx_0, 0))
         self.connect((self.vocoder_cvsd_encode_fb_0, 0), (self.digital_constellation_modulator_0, 0))
 
 
@@ -117,31 +122,17 @@ class Emission_AM(gr.top_block, Qt.QWidget):
 
         event.accept()
 
-    def get_samp_rate(self):
-        return self.samp_rate
-
-    def set_samp_rate(self, samp_rate):
-        self.samp_rate = samp_rate
-        self.set_taps(firdes.band_pass(1.0, self.samp_rate, 150, 23000, 50, window.WIN_HAMMING, 6.76))
-
-    def get_ook(self):
-        return self.ook
-
-    def set_ook(self, ook):
-        self.ook = ook
-        self.digital_constellation_decoder_cb_0.set_constellation(self.ook)
-
     def get_timeErrorDetectionGain(self):
         return self.timeErrorDetectionGain
 
     def set_timeErrorDetectionGain(self, timeErrorDetectionGain):
         self.timeErrorDetectionGain = timeErrorDetectionGain
 
-    def get_taps(self):
-        return self.taps
+    def get_samp_rate(self):
+        return self.samp_rate
 
-    def set_taps(self, taps):
-        self.taps = taps
+    def set_samp_rate(self, samp_rate):
+        self.samp_rate = samp_rate
 
     def get_sampPerSymbol(self):
         return self.sampPerSymbol
@@ -155,6 +146,13 @@ class Emission_AM(gr.top_block, Qt.QWidget):
     def set_pskType(self, pskType):
         self.pskType = pskType
 
+    def get_ook(self):
+        return self.ook
+
+    def set_ook(self, ook):
+        self.ook = ook
+        self.digital_constellation_decoder_cb_0.set_constellation(self.ook)
+
     def get_loop_bandwidth(self):
         return self.loop_bandwidth
 
@@ -166,12 +164,6 @@ class Emission_AM(gr.top_block, Qt.QWidget):
 
     def set_center_freq(self, center_freq):
         self.center_freq = center_freq
-
-    def get_CMA_algo(self):
-        return self.CMA_algo
-
-    def set_CMA_algo(self, CMA_algo):
-        self.CMA_algo = CMA_algo
 
 
 
